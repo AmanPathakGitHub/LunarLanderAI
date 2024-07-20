@@ -1,7 +1,4 @@
 pygame
 gym
 gym[box2d]
-torch
-torchvision
-torchaudio
 PyYAML

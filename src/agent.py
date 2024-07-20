@@ -7,6 +7,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 import gym
 
+import pygame
+
 import random
 import itertools
 
@@ -18,14 +20,15 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class Agent:
     
-    def __init__(self, hyperparameters):
+    def __init__(self, hyperparameters, model_path):
         
         self.env = gym.make("LunarLander-v2", render_mode="human")
         self.hyperparameters = hyperparameters
         
         self.model = LanderModel(self.hyperparameters["hidden_nodes"]).to(device)
         
-        self.model.load_state_dict(torch.load('models/best.pth'))
+        if model_path != None:
+            self.model.load_state_dict(torch.load(model_path))
         
         self.target_model = LanderModel(self.hyperparameters["hidden_nodes"]).to(device)
         self.target_model.load_state_dict(self.model.state_dict())
@@ -45,14 +48,24 @@ class Agent:
         
         highest_reward = 0
         
+        if not training:
+            self.model.eval()
+        
         for episode in itertools.count():
             state, _ = self.env.reset()
 
             terminated = False
             total_reward = 0
+            
+          
 
 
             while not terminated:
+                
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        torch.save(self.model.state_dict(), "models/best.pth")
+                        exit(0)
                 
                 state = torch.tensor(state, dtype=torch.float32).to(device)
 
@@ -71,6 +84,7 @@ class Agent:
                 next_state = torch.tensor(next_state, dtype=torch.float32, device=device)
                 reward = torch.tensor(reward, dtype=torch.float32, device=device)
                 
+                state = next_state
                 
                 # train step
                 if training:
@@ -79,8 +93,9 @@ class Agent:
                     if self.step_count > self.hyperparameters["max_steps"]:
                         break
                 
-                # self.env.render()
-                state = next_state
+                if not training:
+                    self.env.render()
+                
                 
             
             
